@@ -37,6 +37,10 @@ async function run() {
      const database = client.db('real-doctors')
      const doctorsCollection = database.collection('doctor') 
 
+    //  customer order data
+     const orderCollection = client.db('real-doctors').collection('order')
+
+
      app.post('/doctors' , async(req,res)=>{
       const doctorsDetails = req.body 
         console.log(doctorsDetails)
@@ -58,12 +62,32 @@ async function run() {
        const query = {_id : new ObjectId(id)}
        const options = {
         // Include only the `title` and `imdb` fields in the returned document
-        projection: { name:1, img:1 ,degree:1 , service:1 },
+        projection: { name:1, img:1 ,degree:1 , service:1,price:1 },
       };
   
         const result =await doctorsCollection.findOne(query , options)
            res.send(result)
      })
+
+    //  customer order data 
+    app.post('/orders' , async(req ,res)=>{
+         const customerOrder = req.body 
+         console.log(customerOrder)
+         const result = await orderCollection.insertOne(customerOrder) 
+         res.send(result)
+
+    }) 
+    
+    app.get('/orders' , async(req ,res)=>{
+      console.log(req.query) 
+      let query = {} 
+      if(req.query?.email){
+         query = {email : req.query.email}
+      }
+     const result = await orderCollection.find(query).toArray() 
+      res.send(result)
+
+    })
   
 
 
