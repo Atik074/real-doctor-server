@@ -69,7 +69,7 @@ async function run() {
            res.send(result)
      })
 
-    //  customer order data 
+    //  customer order data create
     app.post('/orders' , async(req ,res)=>{
          const customerOrder = req.body 
          console.log(customerOrder)
@@ -77,7 +77,7 @@ async function run() {
          res.send(result)
 
     }) 
-    
+    // customer selected data
     app.get('/orders' , async(req ,res)=>{
       console.log(req.query) 
       let query = {} 
@@ -88,7 +88,15 @@ async function run() {
       res.send(result)
 
     })
-  
+
+// delete order from maongodb
+
+    app.delete('/orders/:id' , async(req , res)=>{
+      const id = req.params.id
+      const query = { _id : new ObjectId(id)} 
+      const result = await orderCollection.deleteOne(query)
+      res.send(result)
+    })
 
 
     await client.db("admin").command({ ping: 1 });
