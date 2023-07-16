@@ -1,10 +1,10 @@
 const express = require('express')
 const cors = require('cors')
+const jwt = require('jsonwebtoken')
 const app = express()
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000
-
 
 
 // middleWare
@@ -12,12 +12,7 @@ app.use(cors())
 app.use(express.json())
 
 
-// real-doctor-mongose 
-// AicEOPSUl0xlICUw
-
-
-
-const uri = "mongodb+srv://real-doctor-mongose:AicEOPSUl0xlICUw@cluster0.flztkm6.mongodb.net/?retryWrites=true&w=majority";
+  const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.flztkm6.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -28,6 +23,32 @@ const client = new MongoClient(uri, {
   }
 });
 
+// jwt function 
+const verifyJwt =(req , res , next) =>{
+    //  console.log('hitting jwt')
+    //  console.log(req.headers.authorization)
+     const authorization = req.headers.authorization
+     if(!authorization){
+        res.status(401).send({error: true , messsage:'unauthorized access'})
+     }
+     const token = authorization.split(' ')[1]
+      // console.log('token paice ' , token)
+       jwt.verify(token , process.env.ACCESS_TOKEN_KEY , (error , decoded)=>{
+       
+        if(error){
+           return res.status(403).send({error : true , messsage:'unauthorized'})
+        }
+
+        req.decoded = decoded 
+        next()
+
+
+       } )
+}
+
+
+
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -36,14 +57,23 @@ async function run() {
 
      const database = client.db('real-doctors')
      const doctorsCollection = database.collection('doctor') 
-
     //  customer order data
      const orderCollection = client.db('real-doctors').collection('order')
 
 
+    //  jwt 
+    app.post('/jwt' ,   (req,res)=>{
+     const user = req.body 
+     console.log(user) 
+     const token = jwt.sign(user ,process.env.ACCESS_TOKEN_KEY,{expiresIn:'1h'
+     })
+     console.log(token)
+     res.send({token})
+    })
+
+      //  SERVER ROUTES
      app.post('/doctors' , async(req,res)=>{
       const doctorsDetails = req.body 
-        console.log(doctorsDetails)
           const result =await doctorsCollection.insertOne(doctorsDetails)
            res.send(result)
          
@@ -72,14 +102,20 @@ async function run() {
     //  customer order data create
     app.post('/orders' , async(req ,res)=>{
          const customerOrder = req.body 
-         console.log(customerOrder)
          const result = await orderCollection.insertOne(customerOrder) 
          res.send(result)
 
     }) 
     // customer selected data
-    app.get('/orders' , async(req ,res)=>{
-      console.log(req.query) 
+    app.get('/orders' , verifyJwt, async(req ,res)=>{
+      // console.log(req.headers.authorization) 
+        const decoded = req.decoded 
+      console.log('come back after verify' , decoded)
+    
+      if(decoded.email !== req.query.email){
+        res.status(403).send({error:1 , messsage:'forbidden access'})
+      }
+
       let query = {} 
       if(req.query?.email){
          query = {email : req.query.email}
